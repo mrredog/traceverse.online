@@ -108,6 +108,16 @@
   --muted-foreground: oklch(0.5 0.03 300);
   --border: oklch(0.2 0.03 300 / 10%);
   --input: oklch(0.2 0.03 300 / 14%);
+  --primary: oklch(0.55 0.22 300);
+  --accent: oklch(0.72 0.15 70);
+  --ring: oklch(0.55 0.22 300);
+  --glow: oklch(0.55 0.22 300 / 22%);
+  --gradient-veil: radial-gradient(
+    120% 90% at 50% -10%,
+    oklch(0.66 0.22 300 / 9%) 0%,
+    transparent 65%
+  );
+  --shadow-float: 0 24px 60px -24px oklch(0.3 0.05 300 / 30%);
 }
 
 @layer base {

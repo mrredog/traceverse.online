@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { ThemeToggle } from "@/components/traceverse/ThemeToggle";
 import { LogoMark } from "@/components/traceverse/LogoMark";
 import { Home, Library, Plus, Users, User, Search, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
@@ -107,6 +108,7 @@ export function Shell({
               <span className="hidden font-display text-base font-semibold lg:block">{title}</span>
             ) : null}
             <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
               {showSearch ? (
                 <Link
                   to="/search"
