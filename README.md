@@ -1928,3 +1928,9 @@ npm run dev
 
 ## Deploy to Netlify
 Push to GitHub, import the repo in Netlify (`netlify.toml` is picked up automatically), and add every variable from `.env.example` in Site settings > Environment variables. Add the Netlify URL to Supabase Auth redirect URLs.
+
+## Keep Netlify environment variables in sync
+Variables are listed in `.env.example`. Two ways to push them to Netlify:
+- **Manual:** `NETLIFY_AUTH_TOKEN=... NETLIFY_SITE_ID=... bun run env:sync` (reads values from your shell, `.env.local` or `.env`; secrets such as the service role key are stored as Netlify secret values).
+- **Automatic:** add the variables as GitHub repository secrets (same names), plus `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID`. The *Sync environment to Netlify* workflow then runs whenever `.env.example` changes, or on demand from the Actions tab.
+Netlify rebuilds only on the next deploy, so trigger a deploy after changing values.
