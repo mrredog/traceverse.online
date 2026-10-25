@@ -57,3 +57,90 @@ export const setBookFollow = createServerFn({ method: "POST" })
 
     return { following: data.follow, followers };
   });
+
+const validateAuthor = (input: { authorId: string }) => {
+  if (!input?.authorId?.trim()) throw new Error("Missing author");
+  return { authorId: input.authorId.trim() };
+};
+
+/** Whether the signed-in reader follows an author. */
+export const getAuthorSocialState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(validateAuthor)
+  .handler(async ({ data, context }): Promise<{ following: boolean }> => {
+    const { data: follow, error } = await context.supabase
+      .from("follows")
+      .select("target_id")
+      .eq("user_id", context.userId)
+      .eq("target_type", "author")
+      .eq("target_id", data.authorId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { following: Boolean(follow) };
+  });
+
+/** Follow or unfollow an author, then refresh the author's real follower count. */
+export const setAuthorFollow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { authorId: string; follow: boolean }) => ({
+    ...validateAuthor(input),
+    follow: Boolean(input.follow),
+  }))
+  .handler(async ({ data, context }): Promise<{ following: boolean; followers: number }> => {
+    const { supabase, userId } = context;
+    let alreadyFollowing = false;
+    if (data.follow) {
+      const { data: existing } = await supabase
+        .from("follows")
+        .select("target_id")
+        .eq("user_id", userId)
+        .eq("target_type", "author")
+        .eq("target_id", data.authorId)
+        .maybeSingle();
+      alreadyFollowing = Boolean(existing);
+    }
+    const mutation = data.follow
+      ? supabase.from("follows").upsert(
+          { user_id: userId, target_type: "author", target_id: data.authorId },
+          { onConflict: "user_id,target_type,target_id" },
+        )
+      : supabase
+          .from("follows")
+          .delete()
+          .eq("user_id", userId)
+          .eq("target_type", "author")
+          .eq("target_id", data.authorId);
+    const { error } = await mutation;
+    if (error) throw new Error(error.message);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { count } = await supabaseAdmin
+      .from("follows")
+      .select("target_id", { count: "exact", head: true })
+      .eq("target_type", "author")
+      .eq("target_id", data.authorId);
+    const followers = count ?? 0;
+    await supabaseAdmin.from("authors").update({ followers }).eq("id", data.authorId);
+
+    // Tell the author about a new follower (best effort; never blocks the follow itself).
+    if (data.follow && !alreadyFollowing) {
+      try {
+        const [{ data: author }, { data: me }] = await Promise.all([
+          supabaseAdmin.from("authors").select("user_id").eq("id", data.authorId).maybeSingle(),
+          supabaseAdmin.from("profiles").select("display_name, handle").eq("id", userId).maybeSingle(),
+        ]);
+        if (author?.user_id && author.user_id !== userId) {
+          await supabaseAdmin.from("notifications").insert({
+            user_id: author.user_id,
+            kind: "follow",
+            title: `${me?.display_name ?? "A reader"} followed you`,
+            body: me?.handle ? `@${me.handle.replace(/^@/, "")} is now following your work.` : "",
+          });
+        }
+      } catch (err) {
+        console.error("[follow] notification failed", err);
+      }
+    }
+
+    return { following: data.follow, followers };
+  });

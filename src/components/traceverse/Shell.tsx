@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Library, Plus, Users, User, Search, Sparkles, Bell } from "lucide-react";
+import { Home, Library, Plus, Users, User, Search, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { NotificationsBell } from "@/components/traceverse/Notifications";
 import { TraceAIPanel } from "@/components/traceverse/TraceAI";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -126,13 +127,7 @@ export function Shell({
                   <Search className="size-4" /> Search books, authors, communities
                 </Link>
               ) : null}
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="grid size-9 place-items-center rounded-xl bg-secondary/60 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Bell className="size-4" />
-              </button>
+              <NotificationsBell />
             </div>
           </div>
         </header>

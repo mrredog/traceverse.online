@@ -1,5 +1,9 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { BadgeCheck, MapPin } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { BookCard } from "@/components/traceverse/BookCard";
 import { EmptyState } from "@/components/traceverse/EmptyState";
@@ -7,6 +11,8 @@ import { Shell } from "@/components/traceverse/Shell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCount } from "@/data/traceverse";
+import { useAuth } from "@/hooks/useAuth";
+import { getAuthorSocialState, setAuthorFollow } from "@/lib/book-social.functions";
 import { catalogueQueryOptions, useCatalogue } from "@/lib/catalogue-query";
 
 export const Route = createFileRoute("/author/$authorId")({
@@ -41,6 +47,41 @@ function AuthorPage() {
   const { author } = Route.useLoaderData();
   const { books } = useCatalogue();
   const works = books.filter((b) => b.authorId === author.id);
+  const navigate = Route.useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const getState = useServerFn(getAuthorSocialState);
+  const updateFollow = useServerFn(setAuthorFollow);
+  const [busy, setBusy] = useState(false);
+  const [followerCount, setFollowerCount] = useState(author.followers);
+  const { data: state } = useQuery({
+    queryKey: ["author-social", author.id, user?.id ?? "anon"],
+    queryFn: () => getState({ data: { authorId: author.id } }),
+    enabled: Boolean(user),
+  });
+  const following = state?.following ?? false;
+
+  const toggleFollow = async () => {
+    if (!user) {
+      await navigate({ to: "/auth" });
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await updateFollow({ data: { authorId: author.id, follow: !following } });
+      setFollowerCount(result.followers);
+      queryClient.setQueryData(["author-social", author.id, user.id], {
+        following: result.following,
+      });
+      await queryClient.invalidateQueries({ queryKey: catalogueQueryOptions.queryKey });
+      toast.success(result.following ? `Following ${author.name}` : `Unfollowed ${author.name}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update follow");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Shell title={author.name}>
@@ -70,7 +111,7 @@ function AuthorPage() {
         </p>
         <div className="mt-4 flex gap-5 text-sm">
           <span>
-            <strong>{formatCount(author.followers)}</strong>{" "}
+            <strong>{formatCount(followerCount)}</strong>{" "}
             <span className="text-muted-foreground">followers</span>
           </span>
           <span>
@@ -78,7 +119,15 @@ function AuthorPage() {
             <span className="text-muted-foreground">readers</span>
           </span>
         </div>
-        <Button className="mt-4 rounded-2xl shadow-glow">Follow</Button>
+        <Button
+          className="mt-4 rounded-2xl glow-hover"
+          variant={following ? "secondary" : "default"}
+          disabled={busy}
+          aria-pressed={following}
+          onClick={() => void toggleFollow()}
+        >
+          {busy ? "Saving…" : following ? "Following" : user ? "Follow" : "Sign in to follow"}
+        </Button>
       </section>
 
       <section className="mt-6 px-4">

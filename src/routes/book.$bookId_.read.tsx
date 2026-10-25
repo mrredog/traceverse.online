@@ -504,11 +504,20 @@ function ReaderPage() {
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}
       >
         <div className="glass flex w-full max-w-md items-center gap-2 rounded-3xl p-2 shadow-float">
-          <Button variant="ghost" className="flex-1 rounded-2xl text-xs">
-            <MessageCircle className="size-4" />
-            {chapter
-              ? `${formatCount(chapter.discussions)} discussing Ch. ${chapter.index}`
-              : "Discussions"}
+          <Button variant="ghost" className="flex-1 rounded-2xl text-xs" asChild>
+            {book.communityId ? (
+              <Link to="/community/$communityId" params={{ communityId: book.communityId }}>
+                <MessageCircle className="size-4" />
+                {chapter
+                  ? `${formatCount(chapter.discussions)} discussing Ch. ${chapter.index}`
+                  : "Discussions"}
+              </Link>
+            ) : (
+              <Link to="/community">
+                <MessageCircle className="size-4" />
+                Discussions
+              </Link>
+            )}
           </Button>
           <TraceAIPanel
             context={`${book.title}${current ? ` · ${current.label}` : ""}`}
