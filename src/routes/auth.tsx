@@ -39,16 +39,60 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [checkEmail, setCheckEmail] = useState(false);
+
+  // Remember where the visitor came from so sign-in can send them back there.
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    try {
+      const ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === window.location.origin && !ref.pathname.startsWith("/auth")) {
+        sessionStorage.setItem("tv-after-auth", ref.pathname + ref.search);
+      }
+    } catch {
+      /* referrer or storage unavailable: fall back to the home page */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    let target = "/";
+    try {
+      const saved = sessionStorage.getItem("tv-after-auth");
+      sessionStorage.removeItem("tv-after-auth");
+      // Only same-site paths, never "//evil.example" or full URLs.
+      if (saved && /^\/(?!\/)/.test(saved)) target = saved;
+    } catch {
+      /* ignore */
+    }
+    if (target === "/") void navigate({ to: "/" });
+    else window.location.replace(target);
   }, [loading, user, navigate]);
+
+  const forgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error("Type your email above first, then tap Forgot password.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      });
+      if (error) throw error;
+      toast.success("If that email has an account, a reset link is on its way.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send the reset email");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const signInWithProvider = async (provider: "google" | "github") => {
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}/auth` },
       });
       if (error) toast.error(`${provider === "github" ? "GitHub" : "Google"} sign-in failed. Please try again.`);
     } catch {
@@ -63,7 +107,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -72,13 +116,18 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Account created. Check your email if confirmation is required.");
+        if (!data.session) {
+          // Email confirmation is on: the account exists but cannot sign in until the link is opened.
+          setCheckEmail(true);
+          return;
+        }
+        toast.success("Welcome to TraceVerse");
+        return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back to TraceVerse");
       }
-      navigate({ to: "/" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -98,6 +147,25 @@ function AuthPage() {
         </div>
       </div>
 
+      {checkEmail ? (
+        <div className="glass space-y-3 rounded-3xl p-5 text-center" role="status">
+          <h2 className="font-display text-lg font-semibold">Check your email</h2>
+          <p className="text-sm text-muted-foreground">
+            We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
+            Open it to finish creating your account, then sign in.
+          </p>
+          <Button
+            variant="secondary"
+            className="w-full rounded-2xl"
+            onClick={() => {
+              setCheckEmail(false);
+              setMode("signin");
+            }}
+          >
+            Back to sign in
+          </Button>
+        </div>
+      ) : (
       <form onSubmit={submit} className="glass space-y-4 rounded-3xl p-5">
         {mode === "signup" ? (
           <div className="space-y-2">
@@ -139,6 +207,16 @@ function AuthPage() {
         <Button type="submit" disabled={busy} className="w-full rounded-2xl">
           {mode === "signup" ? "Create account" : "Sign in"}
         </Button>
+        {mode === "signin" ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void forgotPassword()}
+            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Forgot password?
+          </button>
+        ) : null}
         <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           or
@@ -172,6 +250,7 @@ function AuthPage() {
             : "New to TraceVerse? Create an account"}
         </button>
       </form>
+      )}
     </main>
   );
 }
