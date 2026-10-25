@@ -55,7 +55,11 @@ export const askTraceAI = createServerFn({ method: "POST" })
     return { ...input, prompt: input.prompt.slice(0, 4000) };
   })
   .handler(async ({ data }): Promise<TraceAIResult> => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env["AI_API_KEY"] || process.env["LOVABLE_API_KEY"];
+    const baseUrl = (
+      process.env["AI_BASE_URL"] ||
+      (process.env["AI_API_KEY"] ? "https://openrouter.ai/api/v1" : "https://ai.gateway.lovable.dev/v1")
+    ).replace(/\/$/, "");
     if (!apiKey) {
       return { text: "Trace AI is not configured yet.", task: data.task };
     }
@@ -97,7 +101,7 @@ export const askTraceAI = createServerFn({ method: "POST" })
       }
     }
 
-    const model = "google/gemini-2.5-flash";
+    const model = process.env["AI_MODEL"] || "google/gemini-2.5-flash";
     const parts = [
       data.context ? `Context: ${data.context}` : "",
       data.language ? `Target language: ${data.language}` : "",
@@ -107,7 +111,7 @@ export const askTraceAI = createServerFn({ method: "POST" })
 
     let text = "";
     try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const res = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,

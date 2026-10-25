@@ -1,0 +1,15 @@
+# Netlify deployment for TraceVerse (TanStack Start + Nitro).
+# The Lovable Vite config builds for Cloudflare by default; NITRO_PRESET switches it to Netlify.
+[build]
+  command = "bun install && bun run build"
+  publish = "dist/client"
+
+[build.environment]
+  NITRO_PRESET = "netlify"
+  NODE_VERSION = "22"
+  BUN_VERSION = "1.2.0"
+
+[dev]
+  command = "bun run dev"
+  port = 5173
+  targetPort = 5173

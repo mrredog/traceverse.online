@@ -1917,3 +1917,14 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+---
+
+## Run locally
+1. `cp .env.example .env` and fill in the Supabase keys (service role key is server-only).
+2. `bun install && bun run dev` then open http://localhost:5173
+3. Apply the schema: `supabase link --project-ref <ref> && supabase db push` (migrations in `supabase/migrations`).
+4. Supabase dashboard: create private bucket `book-uploads` and public/private bucket `book-covers`; enable the Google and GitHub providers under Authentication > Providers (GitHub: create an OAuth app and set its callback to `https://YOUR-PROJECT.supabase.co/auth/v1/callback`) and add your site URL + `http://localhost:5173` to redirect URLs.
+
+## Deploy to Netlify
+Push to GitHub, import the repo in Netlify (`netlify.toml` is picked up automatically), and add every variable from `.env.example` in Site settings > Environment variables. Add the Netlify URL to Supabase Auth redirect URLs.
