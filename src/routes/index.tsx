@@ -5,6 +5,7 @@ import { BookCard } from "@/components/traceverse/BookCard";
 import { BookCover } from "@/components/traceverse/BookCover";
 import { CommunityBanner } from "@/components/traceverse/CommunityBanner";
 import { Rail } from "@/components/traceverse/Rail";
+import { useMyLibrary } from "@/lib/use-my-library";
 import { Shell } from "@/components/traceverse/Shell";
 import { HomeSkeleton } from "@/components/traceverse/Skeletons";
 import { TraceAIPanel } from "@/components/traceverse/TraceAI";
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { books, authors, communities, feed } = useCatalogue();
-  const continueReading = books.filter((b) => typeof b.progress === "number");
+  const { reading: continueReading } = useMyLibrary();
   const trending = [...books].sort((a, b) => b.readers - a.readers);
   const fresh = [...books].sort((a, b) => b.year - a.year);
   const hiddenGems = books.filter((b) => b.readers < 100_000);
@@ -130,11 +131,13 @@ function HomePage() {
       </section>
 
       <div className="space-y-9">
-        <Rail title="Continue reading" subtitle="Pick up where you stopped">
-          {continueReading.map((b) => (
-            <BookCard key={b.id} book={b} />
-          ))}
-        </Rail>
+        {continueReading.length ? (
+          <Rail title="Continue reading" subtitle="Pick up where you stopped">
+            {continueReading.map((b) => (
+              <BookCard key={b.id} book={b} />
+            ))}
+          </Rail>
+        ) : null}
 
         <Rail
           title="For you"

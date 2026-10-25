@@ -11,12 +11,17 @@ import {
   MoveHorizontal,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { TraceAIPanel } from "@/components/traceverse/TraceAI";
 import { Button } from "@/components/ui/button";
 import { formatCount, type Book } from "@/data/traceverse";
+import { useAuth } from "@/hooks/useAuth";
 import { catalogueQueryOptions } from "@/lib/catalogue-query";
+import { getBookLibraryState, saveReadingProgress } from "@/lib/library.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/book/$bookId_/read")({
@@ -241,6 +246,43 @@ function ReaderPage() {
   const [selected, setSelected] = useState("");
 
   useEffect(() => setPage(startPage), [book.id, startPage]);
+
+  // Reader preferences stick between visits (stored on this device only).
+  const prefsLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tv-reader");
+      if (raw) {
+        const p = JSON.parse(raw) as { fontSize?: number; theme?: string; measure?: string };
+        if (typeof p.fontSize === "number") setFontSize(Math.min(26, Math.max(15, p.fontSize)));
+        if (p.theme && p.theme in themes) setTheme(p.theme as keyof typeof themes);
+        if (p.measure && p.measure in measures) setMeasure(p.measure as keyof typeof measures);
+      }
+    } catch {
+      /* ignore unreadable settings */
+    }
+    prefsLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!prefsLoaded.current) return;
+    try {
+      localStorage.setItem("tv-reader", JSON.stringify({ fontSize, theme, measure }));
+    } catch {
+      /* storage unavailable */
+    }
+  }, [fontSize, theme, measure]);
+
+  // Pick up where the signed-in reader stopped, and keep their place saved.
+  const { user } = useAuth();
+  const fetchState = useServerFn(getBookLibraryState);
+  const saveProgress = useServerFn(saveReadingProgress);
+  const libState = useQuery({
+    queryKey: ["book-library", book.id, user?.id ?? "anon"],
+    queryFn: () => fetchState({ data: { bookId: book.id } }),
+    enabled: Boolean(user),
+    staleTime: Infinity,
+  });
+  const baseline = useRef<{ bookId: string; page: number } | null>(null);
   useEffect(() => {
     window.scrollTo({ top: 0 });
     setSelected("");
@@ -262,6 +304,36 @@ function ReaderPage() {
   const current = pages[page];
   const chapter = current ? book.chapters[current.chapterIdx] : undefined;
   const go = (n: number) => setPage(Math.max(0, Math.min(total - 1, n)));
+
+  useEffect(() => {
+    if (baseline.current?.bookId === book.id) return;
+    if (!user) return;
+    if (libState.isPending) return; // wait for the saved place before deciding anything
+    let target = page;
+    const saved = libState.data;
+    if (!ch && page === startPage && saved && saved.progress > 0.01 && saved.progress < 0.98 && pages.length > 1) {
+      target = Math.max(0, Math.min(pages.length - 1, Math.round(saved.progress * pages.length) - 1));
+      if (target !== page) {
+        setPage(target);
+        toast.success("Picked up where you left off");
+      }
+    }
+    baseline.current = { bookId: book.id, page: target };
+  }, [user, libState.isPending, libState.data, ch, pages.length, book.id, page, startPage]);
+
+  useEffect(() => {
+    if (!user || !baseline.current || baseline.current.bookId !== book.id) return;
+    if (page === baseline.current.page || !current) return;
+    const t = window.setTimeout(() => {
+      baseline.current = { bookId: book.id, page };
+      void saveProgress({
+        data: { bookId: book.id, progress: (page + 1) / total, chapterIdx: current.chapterNumber },
+      }).catch(() => {
+        /* saving is best-effort; reading must never be interrupted */
+      });
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, [page, user, book.id, total, current, saveProgress]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

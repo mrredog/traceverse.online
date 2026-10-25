@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { BookCard } from "@/components/traceverse/BookCard";
@@ -7,6 +8,8 @@ import { EmptyState } from "@/components/traceverse/EmptyState";
 import { Shell } from "@/components/traceverse/Shell";
 import { genres } from "@/data/traceverse";
 import { catalogueQueryOptions, useCatalogue } from "@/lib/catalogue-query";
+import { Button } from "@/components/ui/button";
+import { useMyLibrary } from "@/lib/use-my-library";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/library")({
@@ -29,30 +32,20 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
-const shelves = [
-  "Currently Reading",
-  "Continue Reading",
-  "Saved",
-  "Wishlist",
-  "Downloaded",
-  "Finished",
-] as const;
+const shelves = ["Reading", "Saved", "Finished"] as const;
 
 function LibraryPage() {
   const { books } = useCatalogue();
-  const [shelf, setShelf] = useState<(typeof shelves)[number]>("Currently Reading");
+  const lib = useMyLibrary();
+  const [shelf, setShelf] = useState<(typeof shelves)[number]>("Reading");
   const [genre, setGenre] = useState<string | null>(null);
 
   const shelfBooks =
-    shelf === "Currently Reading" || shelf === "Continue Reading"
-      ? books.filter((b) => typeof b.progress === "number")
+    shelf === "Reading"
+      ? lib.reading
       : shelf === "Saved"
-        ? books.slice(0, 4)
-        : shelf === "Wishlist"
-          ? books.slice(2, 5)
-          : shelf === "Downloaded"
-            ? books.slice(0, 2)
-            : [];
+        ? lib.saved
+        : lib.finished;
 
   const catalogue = genre ? books.filter((b) => b.genre === genre) : books;
 
@@ -77,7 +70,23 @@ function LibraryPage() {
       </div>
 
       <section className="px-4">
-        {shelfBooks.length ? (
+        {!lib.signedIn && !lib.loading ? (
+          <EmptyState
+            icon={<BookOpen className="size-6" />}
+            line="Sign in to keep your place, save books and build your shelves."
+            action={
+              <Button asChild className="rounded-2xl">
+                <Link to="/auth">Sign in</Link>
+              </Button>
+            }
+          />
+        ) : lib.loading ? (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5" aria-busy="true">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="aspect-[2/3] animate-pulse rounded-2xl bg-secondary/50" />
+            ))}
+          </div>
+        ) : shelfBooks.length ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
             {shelfBooks.map((b) => (
               <BookCard key={b.id} book={b} className="w-full" />
@@ -86,7 +95,13 @@ function LibraryPage() {
         ) : (
           <EmptyState
             icon={<BookOpen className="size-6" />}
-            line="No story has found its way here yet."
+            line={
+              shelf === "Reading"
+                ? "Open a book and your place is saved here."
+                : shelf === "Finished"
+                  ? "Books you finish will be listed here."
+                  : "Tap Save on any book to keep it here."
+            }
           />
         )}
       </section>

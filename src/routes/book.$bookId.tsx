@@ -5,6 +5,7 @@ import {
   BookOpen,
   Bookmark,
   Headphones,
+  Library,
   MessageCircle,
   Share2,
   Sparkles,
@@ -23,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCount } from "@/data/traceverse";
 import { useAuth } from "@/hooks/useAuth";
 import { getBookSocialState, setBookFollow } from "@/lib/book-social.functions";
+import { getBookLibraryState, setBookShelf } from "@/lib/library.functions";
 import { catalogueQueryOptions, useCatalogue } from "@/lib/catalogue-query";
 
 export const Route = createFileRoute("/book/$bookId")({
@@ -61,6 +63,38 @@ function BookPage() {
   const { user } = useAuth();
   const getSocialState = useServerFn(getBookSocialState);
   const updateFollow = useServerFn(setBookFollow);
+  const fetchLibState = useServerFn(getBookLibraryState);
+  const updateShelf = useServerFn(setBookShelf);
+  const [shelfBusy, setShelfBusy] = useState(false);
+  const { data: libState } = useQuery({
+    queryKey: ["book-library", book.id, user?.id ?? "anon"],
+    queryFn: () => fetchLibState({ data: { bookId: book.id } }),
+    enabled: Boolean(user),
+    staleTime: Infinity,
+  });
+  const saved = libState?.shelf === "saved";
+  const toggleSaved = async () => {
+    if (!user) {
+      await navigate({ to: "/auth" });
+      return;
+    }
+    if (shelfBusy) return;
+    setShelfBusy(true);
+    try {
+      const r = await updateShelf({ data: { bookId: book.id, shelf: saved ? null : "saved" } });
+      queryClient.setQueryData(["book-library", book.id, user.id], {
+        shelf: r.shelf,
+        progress: libState?.progress ?? 0,
+        chapterIdx: libState?.chapterIdx ?? 1,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["my-library"] });
+      toast.success(r.shelf ? "Saved to your library" : "Removed from your library");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update your library");
+    } finally {
+      setShelfBusy(false);
+    }
+  };
   const [followBusy, setFollowBusy] = useState(false);
   const [followerCount, setFollowerCount] = useState(book.followers);
   const { books, communities } = useCatalogue();
@@ -172,6 +206,15 @@ function BookPage() {
           >
             <Bookmark className={following ? "size-4 fill-current" : "size-4"} />
             {followBusy ? "Saving…" : following ? "Following" : "Follow"}
+          </Button>
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            disabled={shelfBusy}
+            onClick={() => void toggleSaved()}
+          >
+            <Library className={saved ? "size-4 fill-current" : "size-4"} />
+            {saved ? "Saved" : "Save"}
           </Button>
           {community ? (
             <Button variant="secondary" className="rounded-2xl" asChild>
