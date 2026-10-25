@@ -5,6 +5,7 @@ import { Award, Flame, Clock, BookOpen, Bookmark, Users, LogOut, Briefcase } fro
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { AvatarPicker } from "@/components/traceverse/AvatarPicker";
 import { BookCard } from "@/components/traceverse/BookCard";
 import { Shell } from "@/components/traceverse/Shell";
 import { Button } from "@/components/ui/button";
@@ -105,7 +106,14 @@ function ProfilePage() {
     <Shell title="Profile">
       <section className="px-4 pt-6">
         <div className="flex items-center gap-4">
-          <span className="size-18 rounded-3xl trace-gradient shadow-glow" />
+          {user ? (
+            <AvatarPicker
+              userId={user.id}
+              name={profile?.displayName ?? user.email?.split("@")[0] ?? "Reader"}
+              url={profile?.avatarUrl}
+              onChange={() => void queryClient.invalidateQueries({ queryKey: ["dashboard"] })}
+            />
+          ) : null}
           <div className="min-w-0">
             <h1 className="truncate font-display text-xl font-semibold">
               {profile?.displayName ?? user?.email?.split("@")[0] ?? "Reader"}

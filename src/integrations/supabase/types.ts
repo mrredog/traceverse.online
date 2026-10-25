@@ -49,6 +49,7 @@ export type Database = {
       }
       authors: {
         Row: {
+          avatar_url: string | null
           bio: string
           country: string | null
           created_at: string
@@ -63,6 +64,7 @@ export type Database = {
           verified: boolean
         }
         Insert: {
+          avatar_url?: string | null
           bio?: string
           country?: string | null
           created_at?: string
@@ -77,6 +79,7 @@ export type Database = {
           verified?: boolean
         }
         Update: {
+          avatar_url?: string | null
           bio?: string
           country?: string | null
           created_at?: string
@@ -328,6 +331,7 @@ export type Database = {
       }
       communities: {
         Row: {
+          cover_url: string | null
           book_id: string | null
           created_at: string
           description: string
@@ -340,6 +344,7 @@ export type Database = {
           posts: number
         }
         Insert: {
+          cover_url?: string | null
           book_id?: string | null
           created_at?: string
           description?: string
@@ -352,6 +357,7 @@ export type Database = {
           posts?: number
         }
         Update: {
+          cover_url?: string | null
           book_id?: string | null
           created_at?: string
           description?: string
@@ -553,6 +559,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           account_type: string
           author_id: string | null
           bio: string
@@ -569,6 +576,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           account_type?: string
           author_id?: string | null
           bio?: string
@@ -585,6 +593,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           account_type?: string
           author_id?: string | null
           bio?: string

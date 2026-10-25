@@ -97,6 +97,7 @@ export function mapAuthor(row: AuthorRow, bookIds: string[]): Author {
     readers: row.readers,
     hue: row.hue,
     works: bookIds,
+    ...(row.avatar_url ? { avatarUrl: row.avatar_url } : {}),
   };
 }
 
@@ -110,6 +111,8 @@ export function mapCommunity(row: CommunityRow): Community {
     hue: row.hue,
     official: row.official,
     ...(row.book_id ? { bookId: row.book_id } : {}),
+    ...(row.cover_url ? { coverUrl: row.cover_url } : {}),
+    ...(row.owner_id ? { ownerId: row.owner_id } : {}),
   };
 }
 

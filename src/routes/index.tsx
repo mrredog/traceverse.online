@@ -3,6 +3,7 @@ import { BookOpen, Flame, Sparkles, Compass, ChevronRight, MessageCircle, Heart,
 
 import { BookCard } from "@/components/traceverse/BookCard";
 import { BookCover } from "@/components/traceverse/BookCover";
+import { CommunityBanner } from "@/components/traceverse/CommunityBanner";
 import { Rail } from "@/components/traceverse/Rail";
 import { Shell } from "@/components/traceverse/Shell";
 import { HomeSkeleton } from "@/components/traceverse/Skeletons";
@@ -237,11 +238,11 @@ function HomePage() {
                 params={{ communityId: c.id }}
                 className="glass rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
               >
-                <div
+                <CommunityBanner
+                  name={c.name}
+                  hue={c.hue}
+                  coverUrl={c.coverUrl}
                   className="mb-3 h-16 rounded-2xl"
-                  style={{
-                    backgroundImage: `linear-gradient(120deg, oklch(0.55 0.2 ${c.hue}), oklch(0.25 0.08 ${c.hue + 40}))`,
-                  }}
                 />
                 <p className="text-sm font-semibold">{c.name}</p>
                 <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{c.description}</p>

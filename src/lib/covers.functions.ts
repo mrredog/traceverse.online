@@ -76,10 +76,14 @@ export const generateCover = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const book = await assertOwner(supabase, data.bookId, userId);
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("Trace AI is not configured yet.");
+    // Any OpenAI-compatible image API (AI_API_KEY + AI_IMAGE_MODEL), with the Lovable gateway as fallback.
+    const customKey = process.env["AI_API_KEY"];
+    const apiKey = customKey || process.env["LOVABLE_API_KEY"];
+    if (!apiKey) throw new Error("Trace AI is not configured yet. Upload your own cover instead.");
 
-    const model = "openai/gpt-image-2.5-sunburst";
+    const model = customKey
+      ? process.env["AI_IMAGE_MODEL"] || "gpt-image-1"
+      : "openai/gpt-image-2.5-sunburst";
     const prompt = [
       `Design an original, striking book cover illustration for a ${book.genre || "fiction"} ${book.kind || "book"} titled "${book.title}".`,
       book.summary ? `Story essence: ${book.summary.slice(0, 500)}` : "",
@@ -90,6 +94,34 @@ export const generateCover = createServerFn({ method: "POST" })
       .filter(Boolean)
       .join("\n");
 
+    let b64: string | null = null;
+    if (customKey) {
+      const base = (
+        process.env["AI_IMAGE_BASE_URL"] ||
+        process.env["AI_BASE_URL"] ||
+        "https://api.openai.com/v1"
+      ).replace(/\/$/, "");
+      const imgRes = await fetch(`${base}/images/generations`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, prompt, size: "1024x1536", n: 1 }),
+      });
+      if (imgRes.status === 402 || imgRes.status === 403) {
+        throw new Error("Trace AI cover credits are used up for now. Upload your own cover instead.");
+      }
+      if (imgRes.status === 429) throw new Error("Trace AI is busy. Please try again in a minute.");
+      if (!imgRes.ok) throw new Error("Trace AI could not create a cover right now.");
+      const json = (await imgRes.json()) as { data?: { b64_json?: string; url?: string }[] };
+      const item = json.data?.[0];
+      if (item?.b64_json) {
+        b64 = item.b64_json;
+      } else if (item?.url) {
+        const img = await fetch(item.url);
+        if (!img.ok) throw new Error("No cover was returned.");
+        b64 = Buffer.from(await img.arrayBuffer()).toString("base64");
+      }
+      if (!b64) throw new Error("No cover was returned.");
+    } else {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -142,10 +174,12 @@ export const generateCover = createServerFn({ method: "POST" })
       }
     }
     if (buffer.trim()) handleBlock(buffer);
-    const b64 = finalB64 ?? lastB64;
+    b64 = finalB64 ?? lastB64;
     if (!b64) throw new Error(streamError ? "Trace AI could not create this cover." : "No cover was returned.");
 
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    }
+
+    const bytes = Uint8Array.from(atob(b64 as string), (c) => c.charCodeAt(0));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: upErr } = await supabaseAdmin.storage
       .from(COVER_BUCKET)

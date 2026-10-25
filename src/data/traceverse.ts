@@ -29,6 +29,7 @@ export interface Author {
   readers: number;
   hue: number;
   works: string[];
+  avatarUrl?: string;
 }
 
 export type SectionKind =
@@ -81,6 +82,8 @@ export interface Community {
   hue: number;
   official?: boolean;
   bookId?: string;
+  coverUrl?: string;
+  ownerId?: string;
 }
 
 export interface FeedPost {

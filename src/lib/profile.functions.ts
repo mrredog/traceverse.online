@@ -8,6 +8,7 @@ export interface DashboardPayload {
     id: string;
     handle: string | null;
     displayName: string | null;
+    avatarUrl: string | null;
     bio: string | null;
     country: string | null;
     streakDays: number;
@@ -49,6 +50,7 @@ export const getMyDashboard = createServerFn({ method: "GET" })
         id: userId,
         handle: p?.handle ?? null,
         displayName: p?.display_name ?? null,
+        avatarUrl: p?.avatar_url ?? null,
         bio: p?.bio ?? null,
         country: p?.country ?? null,
         streakDays: p?.streak_days ?? 0,

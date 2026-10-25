@@ -8,12 +8,15 @@ import { Shell } from "@/components/traceverse/Shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CommunityBanner } from "@/components/traceverse/CommunityBanner";
 import { EmptyState } from "@/components/traceverse/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { formatCount } from "@/data/traceverse";
 import { catalogueQueryOptions, useCatalogue } from "@/lib/catalogue-query";
 import { createCommunity } from "@/lib/community.functions";
+import { uploadPublicImage } from "@/lib/image-upload";
+import { setCommunityCover } from "@/lib/images.functions";
 
 export const Route = createFileRoute("/community/")({
   head: () => ({
@@ -43,6 +46,8 @@ function CommunityIndex() {
   const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const create = useServerFn(createCommunity);
+  const saveCover = useServerFn(setCommunityCover);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -65,10 +70,25 @@ function CommunityIndex() {
     setError(null);
     try {
       const res = await create({ data: { name, description } });
+      if (coverFile && user) {
+        try {
+          const url = await uploadPublicImage({
+            bucket: "community-covers",
+            userId: user.id,
+            name: res.id,
+            file: coverFile,
+            resize: { maxSide: 1600 },
+          });
+          await saveCover({ data: { communityId: res.id, url } });
+        } catch (coverErr) {
+          setError(coverErr instanceof Error ? coverErr.message : "The cover could not be saved.");
+        }
+      }
       await qc.invalidateQueries({ queryKey: ["catalogue"] });
       setOpen(false);
       setName("");
       setDescription("");
+      setCoverFile(null);
       navigate({ to: "/community/$communityId", params: { communityId: res.id } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the community.");
@@ -152,6 +172,18 @@ function CommunityIndex() {
               placeholder="What is this circle about?"
               className="min-h-20 rounded-2xl bg-secondary/50"
             />
+            <div>
+              <label htmlFor="community-cover" className="text-xs text-muted-foreground">
+                Cover photo (optional, PNG, JPG or WEBP)
+              </label>
+              <Input
+                id="community-cover"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+                className="mt-1 rounded-2xl bg-secondary/50"
+              />
+            </div>
             {error ? <p className="text-xs text-destructive">{error}</p> : null}
             <Button className="rounded-2xl" disabled={busy} onClick={() => void submit()}>
               {busy ? "Creating…" : "Create"}
@@ -180,11 +212,11 @@ function CommunityIndex() {
             params={{ communityId: c.id }}
             className="glass rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
           >
-            <div
+            <CommunityBanner
+              name={c.name}
+              hue={c.hue}
+              coverUrl={c.coverUrl}
               className="mb-3 h-20 rounded-2xl"
-              style={{
-                backgroundImage: `linear-gradient(120deg, oklch(0.55 0.2 ${c.hue}), oklch(0.24 0.08 ${c.hue + 40}))`,
-              }}
             />
             <p className="flex items-center gap-2 text-sm font-semibold">
               {c.name}

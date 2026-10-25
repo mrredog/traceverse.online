@@ -1,9 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Heart, MessageCircle, Users } from "lucide-react";
-import { useState } from "react";
+import { Camera, Heart, MessageCircle, Users } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
+import { CommunityBanner } from "@/components/traceverse/CommunityBanner";
 import { Shell } from "@/components/traceverse/Shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCount } from "@/data/traceverse";
 import { catalogueQueryOptions } from "@/lib/catalogue-query";
+import { uploadPublicImage } from "@/lib/image-upload";
+import { setCommunityCover } from "@/lib/images.functions";
 import {
   createCommunityPost,
   getCommunityRoom,
@@ -59,6 +63,35 @@ function CommunityPage() {
   const postFn = useServerFn(createCommunityPost);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const saveCover = useServerFn(setCommunityCover);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverOverride, setCoverOverride] = useState<string | null | undefined>(undefined);
+  const isOwner = Boolean(user && community.ownerId && community.ownerId === user.id);
+  const coverUrl = coverOverride === undefined ? community.coverUrl : coverOverride;
+
+  const changeCover = async (file: File) => {
+    if (!user || coverBusy) return;
+    setCoverBusy(true);
+    try {
+      const url = await uploadPublicImage({
+        bucket: "community-covers",
+        userId: user.id,
+        name: community.id,
+        file,
+        resize: { maxSide: 1600 },
+      });
+      await saveCover({ data: { communityId: community.id, url } });
+      setCoverOverride(url);
+      await qc.invalidateQueries({ queryKey: catalogueQueryOptions.queryKey });
+      toast.success("Cover photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update the cover");
+    } finally {
+      setCoverBusy(false);
+      if (coverInputRef.current) coverInputRef.current.value = "";
+    }
+  };
 
   const roomKey = ["community-room", community.id];
   const { data: room } = useQuery({
@@ -109,12 +142,36 @@ function CommunityPage() {
 
   return (
     <Shell title="Community">
-      <div
-        className="h-32 w-full"
-        style={{
-          backgroundImage: `linear-gradient(130deg, oklch(0.55 0.2 ${community.hue}), oklch(0.22 0.07 ${community.hue + 45}))`,
-        }}
-      />
+      <div className="relative">
+        <CommunityBanner
+          name={community.name}
+          hue={community.hue}
+          coverUrl={coverUrl}
+          className="h-32 sm:h-44"
+        />
+        {isOwner ? (
+          <>
+            <button
+              type="button"
+              disabled={coverBusy}
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-background/70 px-3 py-1.5 text-xs font-medium backdrop-blur disabled:opacity-60"
+            >
+              <Camera className="size-3.5" /> {coverBusy ? "Saving…" : "Change cover"}
+            </button>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void changeCover(f);
+              }}
+            />
+          </>
+        ) : null}
+      </div>
       <section className="px-4 pt-4">
         <h1 className="font-display text-2xl font-semibold">{community.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{community.description}</p>

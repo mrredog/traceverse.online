@@ -5,6 +5,7 @@ import { BadgeCheck, MapPin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { TraceAvatar } from "@/components/traceverse/Avatar";
 import { BookCard } from "@/components/traceverse/BookCard";
 import { EmptyState } from "@/components/traceverse/EmptyState";
 import { Shell } from "@/components/traceverse/Shell";
@@ -92,11 +93,11 @@ function AuthorPage() {
         }}
       />
       <section className="-mt-10 px-4">
-        <span
-          className="block size-20 rounded-3xl border-4 border-background"
-          style={{
-            backgroundImage: `linear-gradient(140deg, oklch(0.62 0.2 ${author.hue}), oklch(0.28 0.1 ${author.hue + 30}))`,
-          }}
+        <TraceAvatar
+          name={author.name}
+          hue={author.hue}
+          url={author.avatarUrl}
+          className="block size-20 rounded-3xl border-4 border-background text-2xl"
         />
         <h1 className="mt-3 flex items-center gap-2 font-display text-2xl font-semibold">
           {author.name}
