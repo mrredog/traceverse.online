@@ -13,7 +13,7 @@ export function Rail({
 }) {
   return (
     <section className="animate-rise">
-      <div className="mb-3 flex items-end justify-between gap-3 px-4">
+      <div className="mb-3 flex items-end justify-between gap-3 px-4 lg:px-0">
         <div>
           <h2 className="font-display text-lg font-semibold">{title}</h2>
           {subtitle ? (
@@ -22,7 +22,7 @@ export function Rail({
         </div>
         {action}
       </div>
-      <div className="no-scrollbar flex gap-3 overflow-x-auto px-4 pb-2">{children}</div>
+      <div className="no-scrollbar snap-rail flex gap-3 overflow-x-auto px-4 pb-2 lg:gap-5 lg:px-0">{children}</div>
     </section>
   );
 }

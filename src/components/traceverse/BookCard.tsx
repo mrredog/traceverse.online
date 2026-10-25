@@ -14,7 +14,7 @@ export function BookCard({ book, className }: { book: Book; className?: string }
       to="/book/$bookId"
       params={{ bookId: book.id }}
       className={cn(
-        "group block w-36 shrink-0 transition-transform duration-300 ease-out hover:-translate-y-1 sm:w-40",
+        "group block w-36 shrink-0 rounded-xl transition-transform duration-300 ease-out hover:-translate-y-1 sm:w-40 lg:w-44",
         className,
       )}
     >
@@ -29,10 +29,14 @@ export function BookCard({ book, className }: { book: Book; className?: string }
           </div>
         ) : null}
       </div>
-      <p className="mt-2 truncate text-sm font-semibold">{book.title}</p>
+      <p className="mt-2.5 truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        {book.genre}
+        {typeof book.progress === "number" ? ` · ${Math.round(book.progress * 100)}% read` : ""}
+      </p>
+      <p className="mt-0.5 truncate text-sm font-semibold">{book.title}</p>
       <p className="truncate text-xs text-muted-foreground">{author?.name ?? "Unknown author"}</p>
       <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-        <Star className="size-3 fill-current text-accent" />
+        <Star className="size-3 fill-current text-accent" aria-hidden />
         {book.rating.toFixed(1)}
         <span className="opacity-50">·</span>
         {formatCount(book.readers)} readers

@@ -17,7 +17,7 @@ export function BookCover({ title, author, hue, className, kind, coverUrl }: Boo
   return (
     <div
       className={cn(
-        "relative isolate flex aspect-[2/3] w-full flex-col justify-end overflow-hidden rounded-2xl p-3 shadow-float",
+        "relative isolate flex aspect-[2/3] w-full flex-col justify-end overflow-hidden rounded-xl p-3 shadow-float ring-1 ring-white/10",
         className,
       )}
       style={{
@@ -40,7 +40,7 @@ export function BookCover({ title, author, hue, className, kind, coverUrl }: Boo
       ) : null}
       <div
         aria-hidden
-        className={cn("pointer-events-none absolute inset-0 opacity-70", coverUrl && "hidden")}
+        className={cn("pointer-events-none absolute inset-0 opacity-40", coverUrl && "hidden")}
         style={{
           backgroundImage: `radial-gradient(80% 55% at 20% 8%, oklch(1 0 0 / 26%) 0%, transparent 60%)`,
         }}
@@ -48,7 +48,7 @@ export function BookCover({ title, author, hue, className, kind, coverUrl }: Boo
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-full opacity-25",
+          "pointer-events-none absolute inset-x-0 top-0 h-full opacity-10",
           coverUrl && "hidden",
         )}
         style={{
@@ -62,11 +62,11 @@ export function BookCover({ title, author, hue, className, kind, coverUrl }: Boo
         </span>
       ) : null}
       <div className="relative">
-        <p className="font-display text-sm leading-tight font-semibold text-foreground drop-shadow-sm">
+        <p className="font-display text-[15px] leading-[1.15] font-semibold tracking-tight text-balance text-foreground drop-shadow-sm">
           {title}
         </p>
         {author ? (
-          <p className="mt-1 text-[11px] text-foreground/70">{author}</p>
+          <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-foreground/70">{author}</p>
         ) : null}
       </div>
     </div>

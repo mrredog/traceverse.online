@@ -47,50 +47,49 @@
 :root {
   --radius: 1.4rem;
 
-  --background: oklch(0.13 0.025 296);
-  --foreground: oklch(0.97 0.008 300);
+  --background: oklch(0.14 0.01 290);
+  --foreground: oklch(0.97 0.004 290);
 
-  --surface: oklch(0.18 0.03 296);
-  --surface-2: oklch(0.23 0.038 296);
+  --surface: oklch(0.185 0.012 290);
+  --surface-2: oklch(0.23 0.014 290);
 
-  --card: oklch(0.18 0.03 296);
+  --card: oklch(0.185 0.012 290);
   --card-foreground: oklch(0.97 0.008 300);
-  --popover: oklch(0.19 0.032 296);
+  --popover: oklch(0.195 0.013 290);
   --popover-foreground: oklch(0.97 0.008 300);
 
   --primary: oklch(0.66 0.22 300);
   --primary-foreground: oklch(0.99 0.005 300);
 
-  --secondary: oklch(0.26 0.04 296);
+  --secondary: oklch(0.255 0.014 290);
   --secondary-foreground: oklch(0.95 0.01 300);
 
-  --muted: oklch(0.24 0.032 296);
-  --muted-foreground: oklch(0.72 0.03 296);
+  --muted: oklch(0.24 0.013 290);
+  --muted-foreground: oklch(0.72 0.015 290);
 
-  --accent: oklch(0.74 0.16 340);
+  --accent: oklch(0.8 0.14 75);
   --accent-foreground: oklch(0.15 0.03 300);
 
   --destructive: oklch(0.62 0.22 22);
   --destructive-foreground: oklch(0.98 0.005 300);
 
-  --border: oklch(0.99 0.01 300 / 10%);
+  --border: oklch(0.99 0.005 290 / 9%);
   --input: oklch(0.99 0.01 300 / 14%);
   --ring: oklch(0.66 0.22 300);
-  --glow: oklch(0.66 0.22 300 / 45%);
+  --glow: oklch(0.66 0.22 300 / 30%);
 
   --gradient-trace: linear-gradient(
     135deg,
     oklch(0.66 0.22 300) 0%,
-    oklch(0.62 0.2 322) 48%,
-    oklch(0.74 0.16 348) 100%
+    oklch(0.6 0.22 312) 100%
   );
   --gradient-veil: radial-gradient(
     120% 90% at 50% -10%,
-    oklch(0.66 0.22 300 / 28%) 0%,
+    oklch(0.66 0.22 300 / 11%) 0%,
     transparent 65%
   );
   --shadow-float: 0 24px 60px -20px oklch(0.05 0.02 300 / 85%);
-  --shadow-glow: 0 12px 40px -8px var(--glow);
+  --shadow-glow: 0 8px 24px -10px var(--glow);
 }
 
 /* Light theme is intentionally a soft "paper" variant of the same system. */
@@ -136,6 +135,21 @@
   h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   ::selection {
@@ -203,4 +217,21 @@
 
 @utility animate-trace-pulse {
   animation: trace-pulse 3s ease-in-out infinite;
+}
+
+/* Glow only appears on interaction, never as a resting decoration. */
+@utility glow-hover {
+  transition: box-shadow 0.25s ease;
+  &:hover,
+  &:focus-visible {
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@utility snap-rail {
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 1rem;
+  & > * {
+    scroll-snap-align: start;
+  }
 }

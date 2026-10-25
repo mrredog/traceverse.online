@@ -8,6 +8,8 @@ import {
   Plus,
   Sparkles,
   Type,
+  MoveHorizontal,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -61,6 +63,12 @@ const themes = {
   oled: "bg-background text-foreground",
   sepia: "bg-[oklch(0.93_0.03_82)] text-[oklch(0.25_0.03_60)]",
   paper: "bg-[oklch(0.97_0.005_300)] text-[oklch(0.2_0.02_300)]",
+} as const;
+
+const measures = {
+  narrow: "max-w-xl",
+  normal: "max-w-2xl",
+  wide: "max-w-3xl",
 } as const;
 
 const WORDS_PER_PAGE = 260;
@@ -229,11 +237,26 @@ function ReaderPage() {
   const [theme, setTheme] = useState<keyof typeof themes>("oled");
   const [controls, setControls] = useState(true);
   const [toc, setToc] = useState(false);
+  const [measure, setMeasure] = useState<keyof typeof measures>("normal");
+  const [selected, setSelected] = useState("");
 
   useEffect(() => setPage(startPage), [book.id, startPage]);
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    setSelected("");
   }, [page, book.id]);
+
+  // Remember the last non-empty text selection so Trace AI can explain it.
+  // Empty selections are ignored on purpose: opening the AI sheet clears the
+  // browser selection, and that must not unmount the sheet.
+  useEffect(() => {
+    const onSelect = () => {
+      const text = window.getSelection()?.toString().trim() ?? "";
+      if (text.length > 2) setSelected(text.slice(0, 800));
+    };
+    document.addEventListener("selectionchange", onSelect);
+    return () => document.removeEventListener("selectionchange", onSelect);
+  }, []);
 
   const total = Math.max(1, pages.length);
   const current = pages[page];
@@ -311,6 +334,16 @@ function ReaderPage() {
               {t}
             </button>
           ))}
+          <button
+            type="button"
+            aria-label={`Line width: ${measure}. Tap to change`}
+            onClick={() =>
+              setMeasure((m) => (m === "narrow" ? "normal" : m === "normal" ? "wide" : "narrow"))
+            }
+            className="flex items-center gap-1 rounded-xl bg-secondary/60 px-3 py-1.5 text-[11px] capitalize"
+          >
+            <MoveHorizontal className="size-3.5" /> {measure}
+          </button>
           <span className="ml-auto text-[11px] tabular-nums opacity-60">
             Page {page + 1} of {total}
           </span>
@@ -352,8 +385,11 @@ function ReaderPage() {
 
       {/* Page */}
       <article
-        className="mx-auto max-w-2xl px-6 pb-40 pt-10 sm:px-10"
-        onClick={() => setControls((c) => !c)}
+        className={cn("mx-auto px-6 pb-40 pt-10 sm:px-10", measures[measure])}
+        onClick={() => {
+          if ((window.getSelection()?.toString() ?? "").length > 0) return;
+          setControls((c) => !c);
+        }}
         style={{ fontFamily: "var(--font-reading)" }}
       >
         {current ? (
@@ -428,6 +464,36 @@ function ReaderPage() {
           </Button>
         </div>
       </article>
+
+      {/* Explain selection */}
+      {selected ? (
+        <div
+          className="fixed inset-x-0 z-30 flex justify-center px-4"
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.5rem)" }}
+        >
+          <div className="glass flex items-center gap-1 rounded-full p-1 shadow-float">
+            <TraceAIPanel
+              task="explain"
+              passage={selected}
+              context={`${book.title}${current ? ` · ${current.label}` : ""} (selected passage)`}
+              suggestions={["Explain this passage", "What does this mean in context?", "Why does it matter?"]}
+              trigger={
+                <Button size="sm" className="rounded-full text-xs">
+                  <Sparkles className="size-3.5" /> Explain selection
+                </Button>
+              }
+            />
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setSelected("")}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Bottom actions */}
       <div

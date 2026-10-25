@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flame, Sparkles, Compass, ChevronRight, MessageCircle, Heart } from "lucide-react";
+import { BookOpen, Flame, Sparkles, Compass, ChevronRight, MessageCircle, Heart, Star } from "lucide-react";
 
 import { BookCard } from "@/components/traceverse/BookCard";
+import { BookCover } from "@/components/traceverse/BookCover";
 import { Rail } from "@/components/traceverse/Rail";
 import { Shell } from "@/components/traceverse/Shell";
+import { HomeSkeleton } from "@/components/traceverse/Skeletons";
 import { TraceAIPanel } from "@/components/traceverse/TraceAI";
 import { Button } from "@/components/ui/button";
 import { formatCount } from "@/data/traceverse";
@@ -27,28 +29,84 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogueQueryOptions),
+  pendingComponent: HomeSkeleton,
   component: HomePage,
 });
 
 function HomePage() {
-  const { books, communities, feed } = useCatalogue();
+  const { books, authors, communities, feed } = useCatalogue();
   const continueReading = books.filter((b) => typeof b.progress === "number");
   const trending = [...books].sort((a, b) => b.readers - a.readers);
   const fresh = [...books].sort((a, b) => b.year - a.year);
   const hiddenGems = books.filter((b) => b.readers < 100_000);
+  const featured = trending[0];
+  const featuredAuthor = featured ? authors.find((a) => a.id === featured.authorId) : undefined;
 
   return (
     <Shell>
-      <section className="px-4 pt-6 pb-8 animate-rise">
+      <section className="animate-rise px-4 pt-6 pb-8 lg:px-0">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
-          Thursday · Nairobi
+          Welcome back
         </p>
-        <h1 className="mt-2 font-display text-3xl leading-tight font-semibold">
-          Good morning.
-          <br />
-          <span className="trace-text">Every story leaves a trace.</span>
+        <h1 className="mt-2 text-2xl leading-tight font-semibold sm:text-3xl">
+          Every story <span className="text-primary">leaves a trace.</span>
         </h1>
-        <div className="mt-5 flex flex-wrap gap-2">
+
+        {featured ? (
+          <article className="mt-5 flex gap-4 rounded-3xl border border-border bg-surface p-4 sm:gap-6 sm:p-6">
+            <Link
+              to="/book/$bookId"
+              params={{ bookId: featured.id }}
+              className="w-28 shrink-0 sm:w-40 lg:w-48"
+              aria-label={`Open ${featured.title}`}
+            >
+              <BookCover
+                title={featured.title}
+                hue={featured.hue}
+                kind={featured.kind}
+                coverUrl={featured.coverUrl}
+              />
+            </Link>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-accent">
+                Featured · {featured.genre}
+              </p>
+              <h2 className="mt-1.5 text-xl leading-tight font-semibold sm:text-2xl lg:text-3xl">
+                {featured.title}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {featuredAuthor ? `by ${featuredAuthor.name}` : null}
+              </p>
+              {featured.summary ? (
+                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-foreground/80 sm:line-clamp-4">
+                  {featured.summary}
+                </p>
+              ) : null}
+              <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="size-3.5 fill-current text-accent" aria-hidden />
+                {featured.rating.toFixed(1)}
+                <span className="opacity-50">·</span>
+                {formatCount(featured.readers)} readers
+                <span className="opacity-50">·</span>
+                {featured.chapters.length} chapters
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 sm:mt-auto">
+                <Button className="rounded-2xl glow-hover" asChild>
+                  <Link to="/book/$bookId/read" params={{ bookId: featured.id }} search={{}}>
+                    <BookOpen className="size-4" /> Start reading
+                  </Link>
+                </Button>
+                <Button variant="secondary" className="rounded-2xl" asChild>
+                  <Link to="/book/$bookId" params={{ bookId: featured.id }}>
+                    Details
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </article>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-2">
           <TraceAIPanel
             context="your reading profile"
             suggestions={[
@@ -57,12 +115,12 @@ function HomePage() {
               "African novels about identity",
             ]}
             trigger={
-              <Button className="rounded-2xl shadow-glow">
+              <Button variant="secondary" className="rounded-2xl">
                 <Sparkles className="size-4" /> Ask Trace AI
               </Button>
             }
           />
-          <Button variant="secondary" className="rounded-2xl" asChild>
+          <Button variant="ghost" className="rounded-2xl" asChild>
             <Link to="/search">
               <Compass className="size-4" /> Discover
             </Link>
@@ -98,7 +156,7 @@ function HomePage() {
         </Rail>
 
         <section className="animate-rise">
-          <div className="mb-3 flex items-end justify-between px-4">
+          <div className="mb-3 flex items-end justify-between px-4 lg:px-0">
             <div>
               <h2 className="font-display text-lg font-semibold">The feed</h2>
               <p className="text-xs text-muted-foreground">
@@ -107,7 +165,7 @@ function HomePage() {
             </div>
             <Flame className="size-4 text-accent" />
           </div>
-          <div className="space-y-3 px-4">
+          <div className="space-y-3 px-4 lg:grid lg:grid-cols-2 lg:space-y-0 lg:gap-4 lg:px-0">
             {feed.map((p) => (
               <article key={p.id} className="glass rounded-3xl p-4">
                 <div className="flex items-center gap-3">
@@ -169,7 +227,7 @@ function HomePage() {
           ))}
         </Rail>
 
-        <section className="animate-rise px-4">
+        <section className="animate-rise px-4 lg:px-0">
           <h2 className="mb-3 font-display text-lg font-semibold">Recommended communities</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {communities.slice(0, 4).map((c) => (
