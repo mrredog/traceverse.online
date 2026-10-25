@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { LogoMark } from "@/components/traceverse/LogoMark";
 import { Home, Library, Plus, Users, User, Search, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -38,9 +39,7 @@ export function Shell({
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-6 border-r border-border px-4 py-6 lg:flex">
         <Link to="/" className="flex items-center gap-2 px-2">
-          <span className="grid size-9 place-items-center rounded-xl trace-gradient text-primary-foreground">
-            <Sparkles className="size-4" />
-          </span>
+          <LogoMark className="size-9 rounded-xl" />
           <span className="font-display text-lg font-semibold tracking-tight">TraceVerse</span>
         </Link>
 
@@ -99,9 +98,7 @@ export function Shell({
         <header className="sticky top-0 z-30 glass">
           <div className="flex items-center gap-3 px-4 py-3 lg:px-8">
             <Link to="/" className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-8 place-items-center rounded-xl trace-gradient text-primary-foreground">
-                <Sparkles className="size-4" />
-              </span>
+              <LogoMark className="size-8 rounded-xl" />
               <span className="font-display text-base font-semibold tracking-tight">
                 {title ?? "TraceVerse"}
               </span>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+import { LogoMark } from "@/components/traceverse/LogoMark";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -56,9 +56,7 @@ function ResetPassword() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-8 px-5 py-16">
       <div className="flex items-center gap-3">
-        <span className="grid size-11 place-items-center rounded-2xl trace-gradient text-primary-foreground">
-          <Sparkles className="size-5" />
-        </span>
+        <LogoMark />
         <h1 className="font-display text-2xl font-semibold tracking-tight">Reset password</h1>
       </div>
 
